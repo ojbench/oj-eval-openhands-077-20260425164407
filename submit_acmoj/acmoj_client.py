@@ -131,7 +131,19 @@ def main():
     client = ACMOJClient(args.token)
 
     if args.command == "submit":
-        result = client.submit_git(args.problem_id, args.git_url)
+        git_arg = args.git_url
+        if git_arg.startswith("file://"):
+            path = git_arg[len("file://"):]
+            try:
+                with open(path, 'r') as f:
+                    content = f.read()
+                # Submit raw content as if it were the code payload
+                result = client._make_request("POST", f"/problem/{args.problem_id}/submit", data={"language": "git", "code": content})
+            except Exception as e:
+                print(f"Failed to read file for submission: {e}")
+                result = None
+        else:
+            result = client.submit_git(args.problem_id, git_arg)
     elif args.command == "status":
         result = client.get_submission_detail(args.submission_id)
     elif args.command == "abort":
